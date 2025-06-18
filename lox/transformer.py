@@ -139,10 +139,12 @@ class LoxTransformer(Transformer):
     def call(self, primary, *calls):
         expr = primary
         for call in calls:
-            if isinstance(call, tuple) and call and call[0] == 'call':
-                expr = Call(expr, call[1])
-            elif isinstance(call, Var):
+            if isinstance(call, Var):
                 expr = Getattr(expr, call.name)
+            elif isinstance(call, tuple) and call and call[0] == 'call':
+                expr = Call(expr, call[1])
+            elif isinstance(call, (list, tuple)) and all(isinstance(arg, Expr) for arg in call):
+                expr = Call(expr, list(call))
         return expr
 
     def getattr(self, obj, attr):
@@ -153,8 +155,7 @@ class LoxTransformer(Transformer):
         return ('call', list(args))
 
     def params(self, *args):
-        params = list(args)
-        return params
+        return list(args) if args else []
 
     # Comandos
     def print_cmd(self, expr):
