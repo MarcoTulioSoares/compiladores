@@ -192,7 +192,8 @@ class Call(Expr):
         if callable(callee_value):
             return callee_value(*params)
         else:
-            raise TypeError(f"'{callee_value}' não é uma função!")
+            from .runtime import LoxError
+            raise LoxError("Can only call functions and classes.")
 
 
 @dataclass
@@ -366,10 +367,8 @@ class Block(Node):
     stmts: list[Stmt]
     
     def eval(self, ctx: Ctx):
-        # Cria um novo escopo para o bloco
-        new_ctx = ctx.push({})
         for stmt in self.stmts:
-            stmt.eval(new_ctx)
+            stmt.eval(ctx)
         return None
 
     def validate_self(self, cursor: Cursor):

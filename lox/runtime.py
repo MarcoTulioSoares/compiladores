@@ -68,6 +68,15 @@ class LoxInstance:
             # Caso contrário, armazena como campo da instância
             self.__fields[attr] = value
 
+    def init(self, *args):
+        try:
+            init = self.__klass.get_method("init")
+        except LoxError:
+            raise AttributeError("init")
+        bound_init = init.bind(self)
+        bound_init(*args)
+        return self
+
 
 @dataclass
 class LoxFunction:
@@ -270,8 +279,14 @@ class LoxClass:
         Em Lox, criamos instâncias de uma classe chamando-a como uma função. É
         exatamente como em Python :)
         """
-        # Por enquanto, retornamos instâncias genéricas
-        return LoxInstance(self)
+        instance = LoxInstance(self)
+        try:
+            init = self.get_method("init")
+        except LoxError:
+            return instance
+        bound_init = init.bind(instance)
+        bound_init(*args)
+        return instance
 
     def get_method(self, name: str) -> "LoxFunction":
         # Procure o método na classe atual. 

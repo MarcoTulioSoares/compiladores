@@ -136,17 +136,17 @@ class LoxTransformer(Transformer):
                     result = BinOp(result, right, op.truediv)
         return result
 
-    # Outras expressões
     def call(self, primary, *calls):
-        # calls pode ser uma sequência de chamadas ou acessos a atributos
         expr = primary
+        had_call = False
         for call in calls:
             if isinstance(call, tuple) and call and call[0] == 'call':
-                # chamada de método: ('call', [args])
                 expr = Call(expr, call[1])
+                had_call = True
             elif isinstance(call, Var):
-                # acesso a atributo: .attr
                 expr = Getattr(expr, call.name)
+        if calls and not had_call and not isinstance(expr, Call):
+            expr = Call(expr, [])
         return expr
 
     def getattr(self, obj, attr):
@@ -273,19 +273,15 @@ class LoxTransformer(Transformer):
             raise TypeError("unary espera 1 ou 2 argumentos")
 
     def assign(self, target, value):
-        from .ast import Assign, Setattr
-        if isinstance(target, list) and len(target) == 2:
-            if target[0] == 'attr_target':
-                obj, attr = target[1]
-                return Setattr(obj, attr.name, value)
-            elif target[0] == 'var_target':
-                var = target[1]
-                return Assign(var.name, value)
-        # fallback para lógica antiga
-        if hasattr(target, 'name'):
+        from .ast import Assign, Setattr, Getattr, Var
+        if isinstance(target, Getattr):
+            # Atribuição de atributo encadeado
+            return Setattr(target.obj, target.attr, value)
+        elif isinstance(target, Var):
+            # Atribuição de variável simples
             return Assign(target.name, value)
         else:
-            raise ValueError(f"Target inválido para atribuição: {target}")
+            raise ValueError(f"Atribuição inválida: só é permitido atribuir a variáveis ou atributos, mas recebeu {type(target).__name__}")
 
     def attr_target(self, obj, attr):
         return ['attr_target', (obj, attr)]
@@ -332,3 +328,11 @@ class LoxTransformer(Transformer):
     def method_decl(self, name_token, params, body):
         from .ast import Method
         return Method(name=name_token.name, params=params, body=body)
+
+    def attr_chain(self, obj, *attrs):
+        for attr in attrs:
+            obj = Getattr(obj, attr.name)
+        return obj
+
+    def expr(self, arg):
+        return arg

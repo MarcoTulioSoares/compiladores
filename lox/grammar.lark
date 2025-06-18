@@ -40,11 +40,9 @@ for_incr  : expr?
 // EXPRESSÕES
 ?expr      : assign
 
-?assign    : attr_target "=" assign   -> assign
-           | var_target "=" assign    -> assign
-           | logic_or
+?assign: call "=" assign   -> assign
+       | logic_or
 
-attr_target: call "." VAR
 var_target: VAR
 
 ?logic_or  : logic_and ("or" logic_and)*
@@ -71,7 +69,7 @@ factor    : unary
 unary     : (NOT | MINUS) unary   -> unary
            | call
 
-?call     : primary ("(" params ")" | "." VAR)*
+?call     : primary ( ("(" params ")") | ("." VAR) )*
 
 ?primary  : NUMBER
            | BOOL
