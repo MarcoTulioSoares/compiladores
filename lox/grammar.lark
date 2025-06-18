@@ -9,11 +9,14 @@ var_decl   : "var" VAR ("=" expr)? ";"
 
 ?stmt      : expr ";"
            | print_cmd
+           | block
            // | if_cmd
            // | for_cmd
            // | ...
 
 print_cmd  : "print" expr ";"
+
+block      : "{" stmt* "}"
 
 // EXPRESSÕES
 ?expr      : test

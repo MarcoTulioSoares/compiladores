@@ -64,6 +64,9 @@ class LoxTransformer(Transformer):
             value = Literal(None)
         return VarDef(name.name, value)
 
+    def block(self, *stmts):
+        return Block(list(stmts))
+
     def VAR(self, token):
         name = str(token)
         return Var(name)
