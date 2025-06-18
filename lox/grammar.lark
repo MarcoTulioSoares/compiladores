@@ -5,13 +5,15 @@ program    : stmt*
 ?stmt      : expr ";"
            | print_cmd
            | block
-           // | if_cmd
+           | if_cmd
            // | for_cmd
            // | ...
 
 print_cmd  : "print" expr ";"
 
 block      : "{" stmt* "}"
+
+if_cmd     : "if" "(" expr ")" stmt ["else" stmt]
 
 // EXPRESSÕES
 ?expr      : test
@@ -41,9 +43,12 @@ block      : "{" stmt* "}"
            | NIL
            | "(" cmp ")"
            | call
+           | unary
 
 call       : VAR "(" params ")"
 params     : [ expr ("," expr )* ]
+
+unary     : ("!" | "-") atom
 
 BOOL.2     : "true" | "false"
 VAR.1      : /[a-z_]\w*/

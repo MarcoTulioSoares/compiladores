@@ -132,6 +132,12 @@ class UnaryOp(Expr):
 
     Ex.: -x, !x
     """
+    op: callable
+    expr: Expr
+
+    def eval(self, ctx: Ctx):
+        value = self.expr.eval(ctx)
+        return self.op(value)
 
 
 @dataclass
@@ -242,6 +248,17 @@ class If(Stmt):
 
     Ex.: if (x > 0) { ... } else { ... }
     """
+    condition: Expr
+    then_branch: Stmt
+    else_branch: Stmt
+    
+    def eval(self, ctx: Ctx):
+        condition_value = self.condition.eval(ctx)
+        if condition_value:
+            self.then_branch.eval(ctx)
+        else:
+            self.else_branch.eval(ctx)
+        return None
 
 
 @dataclass

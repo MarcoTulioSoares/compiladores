@@ -62,6 +62,12 @@ class LoxTransformer(Transformer):
     def block(self, *stmts):
         return Block(list(stmts))
 
+    def if_cmd(self, condition, then_branch, else_branch=None):
+        if else_branch is None:
+            # Se não há else, criamos um bloco vazio
+            else_branch = Block([])
+        return If(condition, then_branch, else_branch)
+
     def VAR(self, token):
         name = str(token)
         return Var(name)
@@ -79,3 +85,11 @@ class LoxTransformer(Transformer):
 
     def BOOL(self, token):
         return Literal(token == "true")
+
+    def unary(self, op_token, expr):
+        if str(op_token) == '!':
+            return UnaryOp(op.not_, expr)
+        elif str(op_token) == '-':
+            return UnaryOp(op.neg, expr)
+        else:
+            raise NotImplementedError(f"Operador unário desconhecido: {op_token}")
