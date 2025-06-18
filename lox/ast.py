@@ -269,6 +269,12 @@ class Block(Node):
 
     Ex.: { var x = 42; print x;  }
     """
+    stmts: list[Stmt]
+    
+    def eval(self, ctx: Ctx):
+        for stmt in self.stmts:
+            stmt.eval(ctx)
+        return None
 
 
 @dataclass
