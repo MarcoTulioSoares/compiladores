@@ -234,11 +234,12 @@ class Return(Stmt):
 
 @dataclass
 class VarDef(Stmt):
-    """
-    Representa uma declaração de variável.
+    name: str
+    value: Expr
 
-    Ex.: var x = 42;
-    """
+    def eval(self, ctx: Ctx):
+        val = self.value.eval(ctx)
+        ctx.var_def(self.name, val)
 
 
 @dataclass

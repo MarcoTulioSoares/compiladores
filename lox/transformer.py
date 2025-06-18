@@ -11,7 +11,7 @@ from typing import Callable
 from lark import Transformer, v_args
 
 from . import runtime as op
-from .ast import *
+from .ast import VarDef, Literal, Var, Print, Call, Program, BinOp
 
 
 def op_handler(op: Callable):
@@ -58,6 +58,11 @@ class LoxTransformer(Transformer):
     # Comandos
     def print_cmd(self, expr):
         return Print(expr)
+
+    def var_decl(self, name, value=None):
+        if value is None:
+            value = Literal(None)
+        return VarDef(name.name, value)
 
     def block(self, *stmts):
         return Block(list(stmts))

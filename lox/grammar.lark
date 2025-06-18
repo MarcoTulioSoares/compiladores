@@ -1,6 +1,11 @@
 ?start     : program
 
-program    : stmt*
+program    : declaration*
+
+?declaration : var_decl
+             | stmt
+
+var_decl   : "var" VAR ("=" expr)? ";"
 
 ?stmt      : expr ";"
            | print_cmd
