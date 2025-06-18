@@ -11,7 +11,8 @@ from typing import Callable
 from lark import Transformer, v_args
 
 from . import runtime as op
-from .ast import VarDef, Literal, Var, Print, Call, Program, BinOp
+from .ast import *
+from .ast import If, Block
 
 
 def op_handler(op: Callable):
@@ -91,10 +92,20 @@ class LoxTransformer(Transformer):
     def BOOL(self, token):
         return Literal(token == "true")
 
-    def unary(self, op_token, expr):
-        if str(op_token) == '!':
-            return UnaryOp(op.not_, expr)
-        elif str(op_token) == '-':
-            return UnaryOp(op.neg, expr)
+    def unary(self, *args):
+        print(f"DEBUG: unary called with args: {args}")
+        if len(args) == 2:
+            op_token, expr = args
+            if str(op_token) == '!':
+                return UnaryOp(op.not_, expr)
+            elif str(op_token) == '-':
+                return UnaryOp(op.neg, expr)
+            else:
+                raise NotImplementedError(f"Operador unário desconhecido: {op_token}")
+        elif len(args) == 1:
+            return args[0]
         else:
-            raise NotImplementedError(f"Operador unário desconhecido: {op_token}")
+            raise TypeError("unary espera 1 ou 2 argumentos")
+
+    def assign(self, var, value):
+        return Assign(var.name, value)

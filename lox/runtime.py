@@ -105,3 +105,7 @@ def truthy(value: "Value") -> bool:
     if value is None or value is False:
         return False
     return True
+
+
+def not_(value):
+    return not truthy(value)
