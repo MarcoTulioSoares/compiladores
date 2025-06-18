@@ -50,10 +50,30 @@ class LoxTransformer(Transformer):
 
     # Operadores lógicos
     def logical_or(self, *args):
-        return args[0]
+        if len(args) == 1:
+            return args[0]
+        result = args[0]
+        for i in range(1, len(args), 2):
+            if i + 1 < len(args):
+                op_token = args[i]
+                right = args[i + 1]
+                if op_token == "or":
+                    from .ast import Or
+                    result = Or(result, right)
+        return result
 
     def logical_and(self, *args):
-        return args[0]
+        if len(args) == 1:
+            return args[0]
+        result = args[0]
+        for i in range(1, len(args), 2):
+            if i + 1 < len(args):
+                op_token = args[i]
+                right = args[i + 1]
+                if op_token == "and":
+                    from .ast import And
+                    result = And(result, right)
+        return result
 
     def equality(self, *args):
         if len(args) == 1:
@@ -89,7 +109,6 @@ class LoxTransformer(Transformer):
         return result
 
     def term(self, *args):
-        print(f"DEBUG: term called with args={args}, len={len(args)}")
         if len(args) == 1:
             return args[0]
         result = args[0]
@@ -97,7 +116,6 @@ class LoxTransformer(Transformer):
             if i + 1 < len(args):
                 op_token = args[i]
                 right = args[i + 1]
-                print(f"DEBUG: applying {op_token} to {result} and {right}")
                 if op_token == "+":
                     result = BinOp(result, right, op.add)
                 elif op_token == "-":
@@ -105,7 +123,6 @@ class LoxTransformer(Transformer):
         return result
 
     def factor(self, *args):
-        print(f"DEBUG: factor called with args={args}, len={len(args)}")
         if len(args) == 1:
             return args[0]
         result = args[0]
@@ -120,9 +137,25 @@ class LoxTransformer(Transformer):
         return result
 
     # Outras expressões
-    def call(self, name: Var, params: list):
-        return Call(name.name, params)
-        
+    def call(self, primary, *calls):
+        # calls pode ser uma sequência de chamadas ou acessos a atributos
+        expr = primary
+        for call in calls:
+            if isinstance(call, tuple) and call and call[0] == 'call':
+                # chamada de método: ('call', [args])
+                expr = Call(expr, call[1])
+            elif isinstance(call, Var):
+                # acesso a atributo: .attr
+                expr = Getattr(expr, call.name)
+        return expr
+
+    def getattr(self, obj, attr):
+        return Getattr(obj, attr.name)
+
+    def call__params(self, *args):
+        # usado internamente para distinguir chamada de método
+        return ('call', list(args))
+
     def params(self, *args):
         params = list(args)
         return params
@@ -131,10 +164,21 @@ class LoxTransformer(Transformer):
     def print_cmd(self, expr):
         return Print(expr)
 
+    def return_cmd(self, expr=None):
+        if expr is None:
+            expr = Literal(None)
+        return Return(expr)
+
     def var_decl(self, name, value=None):
         if value is None:
             value = Literal(None)
         return VarDef(name.name, value)
+
+    def fun_decl(self, name, params, body):
+        return Function(name.name, params, body)
+
+    def fun_parameters(self, *args):
+        return [arg.name for arg in args]
 
     def block(self, *stmts):
         return Block(list(stmts))
@@ -198,8 +242,23 @@ class LoxTransformer(Transformer):
     def BOOL(self, token):
         return Literal(token == "true")
 
+    def THIS(self, *_):
+        from .ast import This
+        return This()
+
+    def primary(self, *args):
+        # primary pode conter: NUMBER, BOOL, VAR, STRING, NIL, "this", ou "(" expr ")"
+        if len(args) == 0:
+            raise ValueError("primary chamado sem argumentos! Isso indica erro na propagação de tokens.")
+        if len(args) == 1:
+            return args[0]
+        elif len(args) == 3 and args[0] == "(" and args[2] == ")":
+            # Expressão entre parênteses: (expr)
+            return args[1]
+        else:
+            raise ValueError(f"primary inválido: {args}")
+
     def unary(self, *args):
-        print(f"DEBUG: unary called with args: {args}")
         if len(args) == 2:
             op_token, expr = args
             if str(op_token) == '!':
@@ -213,11 +272,26 @@ class LoxTransformer(Transformer):
         else:
             raise TypeError("unary espera 1 ou 2 argumentos")
 
-    def assign(self, var, value):
-        return Assign(var.name, value)
+    def assign(self, target, value):
+        from .ast import Assign, Setattr
+        if isinstance(target, list) and len(target) == 2:
+            if target[0] == 'attr_target':
+                obj, attr = target[1]
+                return Setattr(obj, attr.name, value)
+            elif target[0] == 'var_target':
+                var = target[1]
+                return Assign(var.name, value)
+        # fallback para lógica antiga
+        if hasattr(target, 'name'):
+            return Assign(target.name, value)
+        else:
+            raise ValueError(f"Target inválido para atribuição: {target}")
 
-    def atom(self, *args):
-        return args[0]
+    def attr_target(self, obj, attr):
+        return ['attr_target', (obj, attr)]
+
+    def var_target(self, var):
+        return ['var_target', var]
 
     def add(self, left, right):
         return BinOp(left, right, op.add)
@@ -239,3 +313,22 @@ class LoxTransformer(Transformer):
         return BinOp(left, right, op.lt)
     def le(self, left, right):
         return BinOp(left, right, op.le)
+
+    def class_decl(self, name_token, *args):
+        from .ast import Class
+        name = name_token.name.capitalize()
+        # args pode conter: [superclass, body] ou apenas [body]
+        if len(args) == 2:
+            superclass_token, body = args
+            superclass = superclass_token.name.capitalize()
+        else:
+            body = args[0] if args else []
+            superclass = None
+        return Class(name=name, superclass=superclass, methods=body or [])
+
+    def class_body(self, *methods):
+        return list(methods)
+
+    def method_decl(self, name_token, params, body):
+        from .ast import Method
+        return Method(name=name_token.name, params=params, body=body)

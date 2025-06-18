@@ -1,21 +1,28 @@
 ?start     : program
 
-program    : declaration*
-
-?declaration : var_decl
-             | stmt
+program    : stmt*
 
 var_decl   : "var" VAR ("=" expr)? ";"
 
+fun_decl   : "fun" VAR "(" fun_parameters ")" block
+
+fun_parameters : [ VAR ("," VAR)* ]
+
 ?stmt      : expr ";"
            | print_cmd
+           | return_cmd
            | block
            | if_cmd
            | while_cmd
            | for_cmd
+           | var_decl
+           | fun_decl
+           | class_decl
            // | ...
 
 print_cmd  : "print" expr ";"
+
+return_cmd : "return" expr? ";"
 
 block      : "{" stmt* "}"
 
@@ -33,48 +40,53 @@ for_incr  : expr?
 // EXPRESSÕES
 ?expr      : assign
 
-?assign    : VAR "=" assign   -> assign
-           | equality
+?assign    : attr_target "=" assign   -> assign
+           | var_target "=" assign    -> assign
+           | logic_or
 
-?equality  : comparison
+attr_target: call "." VAR
+var_target: VAR
+
+?logic_or  : logic_and ("or" logic_and)*
+?logic_and : equality ("and" equality)*
+
+equality  : comparison
            | equality "==" comparison   -> eq
            | equality "!=" comparison   -> ne
 
-?comparison: term
+comparison: term
            | comparison ">" term        -> gt
            | comparison ">=" term       -> ge
            | comparison "<" term        -> lt
            | comparison "<=" term       -> le
 
-?term      : factor
+term      : factor
            | term "+" factor            -> add
            | term "-" factor            -> sub
 
-?factor    : unary
+factor    : unary
            | factor "*" unary           -> mul
            | factor "/" unary           -> div
 
-?unary     : (NOT | MINUS) unary   -> unary
-           | atom
+unary     : (NOT | MINUS) unary   -> unary
+           | call
 
-?logical_or: logical_and ("or" logical_and)*
+?call     : primary ("(" params ")" | "." VAR)*
 
-?logical_and: equality ("and" equality)*
-
-atom       : NUMBER 
+?primary  : NUMBER
            | BOOL
            | VAR
            | STRING
            | NIL
+           | THIS
            | "(" expr ")"
-           | call
 
-call       : VAR "(" params ")"
-params     : [ expr ("," expr )* ]
+params     : (expr ("," expr)*)?
 
 // Tokens
+THIS.10     : "this"
 BOOL.2     : "true" | "false"
-VAR.1      : /[a-z_]\w*/
+VAR.1      : /[a-zA-Z_]\w*/
 NUMBER     : /([1-9][0-9]*|0)(\.[0-9]+)?/ 
 STRING     : /"[^"]*"/
 NIL.2      : "nil"
@@ -89,6 +101,17 @@ LESS       : "<"
 LESS_EQUAL : "<="
 EQUAL_EQUAL : "=="
 BANG_EQUAL : "!="
+SEMICOLON  : ";"
+LPAR       : "("
+RPAR       : ")"
+DOT        : "."
+EQUAL      : "="
 COMMENT    : "//" /[^\n]*/
 
 %ignore /\s/ | COMMENT
+
+class_decl : "class" VAR ["<" VAR] "{" class_body "}"
+
+class_body : [ method_decl* ]
+
+method_decl : VAR "(" fun_parameters ")" block
