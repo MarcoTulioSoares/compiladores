@@ -115,6 +115,14 @@ class And(Expr):
 
     Ex.: x and y
     """
+    left: Expr
+    right: Expr
+    
+    def eval(self, ctx: Ctx):
+        left_value = self.left.eval(ctx)
+        if not left_value:  # Curto-circuito: se left é falsy, retorna left
+            return left_value
+        return self.right.eval(ctx)  # Só avalia right se left for truthy
 
 
 @dataclass
@@ -123,6 +131,14 @@ class Or(Expr):
     Uma operação infixa com dois operandos.
     Ex.: x or y
     """
+    left: Expr
+    right: Expr
+    
+    def eval(self, ctx: Ctx):
+        left_value = self.left.eval(ctx)
+        if left_value:  # Curto-circuito: se left é truthy, retorna left
+            return left_value
+        return self.right.eval(ctx)  # Só avalia right se left for falsy
 
 
 @dataclass
@@ -270,21 +286,19 @@ class If(Stmt):
 
 
 @dataclass
-class For(Stmt):
-    """
-    Representa um laço de repetição.
-
-    Ex.: for (var i = 0; i < 10; i++) { ... }
-    """
-
-
-@dataclass
 class While(Stmt):
     """
     Representa um laço de repetição.
 
     Ex.: while (x > 0) { ... }
     """
+    condition: Expr
+    body: Stmt
+    
+    def eval(self, ctx: Ctx):
+        while self.condition.eval(ctx):
+            self.body.eval(ctx)
+        return None
 
 
 @dataclass

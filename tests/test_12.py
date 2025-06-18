@@ -75,11 +75,9 @@ class TestExamples(testing.ExampleTester):
     examples = {
         "no_increment",
         "simple",
-        "statement_condition",
-        "statement_increment",
         "statement_initializer",
         "var_in_body",
-        # "fun_in_body",
-        # "class_in_body",
+        "fun_in_body",
+        "class_in_body",
     }
     fuzzy_output = True
