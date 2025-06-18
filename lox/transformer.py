@@ -138,15 +138,11 @@ class LoxTransformer(Transformer):
 
     def call(self, primary, *calls):
         expr = primary
-        had_call = False
         for call in calls:
             if isinstance(call, tuple) and call and call[0] == 'call':
                 expr = Call(expr, call[1])
-                had_call = True
             elif isinstance(call, Var):
                 expr = Getattr(expr, call.name)
-        if calls and not had_call and not isinstance(expr, Call):
-            expr = Call(expr, [])
         return expr
 
     def getattr(self, obj, attr):
